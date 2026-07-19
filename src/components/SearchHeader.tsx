@@ -32,7 +32,7 @@ export function SearchHeader({ icao, isLoading, onSearch, onRefresh, mode, onMod
       <form onSubmit={handleSubmit} className="w-full relative max-w-[240px] font-sans">
         <input
           type="text"
-          className="block w-full h-11 rounded-full border border-zinc-900 px-4 pr-11 text-center text-xs font-bold text-white bg-zinc-950 placeholder:text-zinc-600 focus:outline-none focus:border-accent font-sans uppercase tracking-widest"
+          className="block w-full h-11 rounded-full border border-zinc-900 px-4 pr-11 text-center text-sm font-extrabold text-white bg-zinc-950 placeholder:text-zinc-600 focus:outline-none focus:border-accent font-sans uppercase tracking-widest"
           style={{ minHeight: '44px' }}
           placeholder="SEARCH AIRPORT"
           value={input}
@@ -44,7 +44,7 @@ export function SearchHeader({ icao, isLoading, onSearch, onRefresh, mode, onMod
           className="absolute right-1 top-1 w-9 h-9 rounded-full bg-accent text-black flex items-center justify-center cursor-pointer active:bg-accent/80 font-sans"
           style={{ minHeight: '36px', minWidth: '36px' }}
         >
-          <Search size={13} />
+          <Search size={15} />
         </button>
       </form>
 
@@ -58,7 +58,7 @@ export function SearchHeader({ icao, isLoading, onSearch, onRefresh, mode, onMod
           style={{ minWidth: '48px', minHeight: '48px' }}
           title="Refresh Weather"
         >
-          {isLoading ? <Loader2 size={16} className="animate-spin text-accent" /> : <RefreshCw size={16} />}
+          {isLoading ? <Loader2 size={19} className="animate-spin text-accent" /> : <RefreshCw size={19} />}
         </button>
 
         {/* Toggle Simbrief Button */}
@@ -68,7 +68,7 @@ export function SearchHeader({ icao, isLoading, onSearch, onRefresh, mode, onMod
           style={{ minWidth: '48px', minHeight: '48px' }}
           title="Flight Briefing"
         >
-          <SimbriefIcon size={16} />
+          <SimbriefIcon size={19} />
         </button>
 
         {/* Settings Button */}
@@ -78,7 +78,7 @@ export function SearchHeader({ icao, isLoading, onSearch, onRefresh, mode, onMod
           style={{ minWidth: '48px', minHeight: '48px' }}
           title="Settings"
         >
-          <Settings size={16} />
+          <Settings size={19} />
         </button>
       </div>
 

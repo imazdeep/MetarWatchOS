@@ -14,7 +14,7 @@ export function FlightCategoryBadge({ category }: { category?: string }) {
   const badgeStyle = styleMap[category] || styleMap.UNKNOWN;
 
   return (
-    <div className={`px-2.5 py-0.5 rounded-md border text-[10px] font-black tracking-widest uppercase ${badgeStyle} inline-flex items-center justify-center`} style={{ height: '22px' }}>
+    <div className={`px-2.5 py-0.5 rounded-md border text-xs font-black tracking-widest uppercase ${badgeStyle} inline-flex items-center justify-center`} style={{ height: '24px' }}>
       {category}
     </div>
   );

@@ -50,25 +50,25 @@ export function WeatherGrid({ metar }: { metar: MetarData | null }) {
   const items = [
     {
       title: "ALT",
-      icon: <Gauge size={11} className="text-accent" />,
+      icon: <Gauge size={13} className="text-accent" />,
       value: altDisplay,
       unit: altUnit,
     },
     {
       title: "TEMP",
-      icon: <Thermometer size={11} className="text-accent" />,
+      icon: <Thermometer size={13} className="text-accent" />,
       value: tempDisplay,
       unit: tempUnit,
     },
     {
       title: "WIND",
-      icon: <Wind size={11} className="text-accent" />,
+      icon: <Wind size={13} className="text-accent" />,
       value: metar.wind ? `${metar.wind.direction}/${metar.wind.speed}` : 'N/A',
       unit: metar.wind?.unit || 'KT',
     },
     {
       title: "VIS",
-      icon: <Eye size={11} className="text-accent" />,
+      icon: <Eye size={13} className="text-accent" />,
       value: metar.visibility ? metar.visibility : 'N/A',
       unit: '',
     }
@@ -82,16 +82,16 @@ export function WeatherGrid({ metar }: { metar: MetarData | null }) {
           className="bg-zinc-950/40 border border-zinc-900/85 rounded-2xl p-3 flex flex-col items-center justify-center text-center font-sans hover:border-accent/40 transition-colors"
           style={{ minHeight: '66px' }}
         >
-          <div className="flex items-center gap-1 text-zinc-500 font-bold text-[10px] tracking-widest uppercase mb-1 font-sans">
+          <div className="flex items-center gap-1 text-zinc-500 font-bold text-xs tracking-widest uppercase mb-1 font-sans">
             {item.icon}
             <span>{item.title}</span>
           </div>
           <div className="flex items-baseline justify-center gap-1 min-w-0 w-full font-sans">
-            <span className="text-xl font-black text-white tracking-tight truncate max-w-full font-sans">
+            <span className="text-2xl font-black text-white tracking-tight truncate max-w-full font-sans">
               {item.value}
             </span>
             {item.unit && (
-              <span className="text-[10px] font-bold text-accent shrink-0 select-none font-sans">
+              <span className="text-xs font-bold text-accent shrink-0 select-none font-sans">
                 {item.unit}
               </span>
             )}

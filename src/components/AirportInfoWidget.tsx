@@ -30,7 +30,7 @@ export function AirportInfoWidget({ airport, icao, metar, lastUpdated }: Props) 
     <div className="w-full flex flex-col items-center text-center gap-1.5 py-1 font-sans">
       {/* Station Code + Flight Category Badge on one line */}
       <div className="flex items-center justify-center gap-3 w-full font-sans">
-        <h1 className="text-3xl font-black tracking-tight text-white uppercase font-sans">
+        <h1 className="text-4xl font-black tracking-tight text-white uppercase font-sans">
           {icao.toUpperCase()}
         </h1>
         {metar?.flightCategory && (
@@ -39,12 +39,12 @@ export function AirportInfoWidget({ airport, icao, metar, lastUpdated }: Props) 
       </div>
 
       {/* Subtitle containing Airport Name and Live UTC Time */}
-      <div className="flex items-center justify-center gap-1.5 text-[11px] text-zinc-400 max-w-[280px] w-full font-sans">
+      <div className="flex items-center justify-center gap-1.5 text-xs text-zinc-400 max-w-[300px] w-full font-sans">
         {airport && (
           <span className="truncate font-bold tracking-wide uppercase font-sans">{airport.name}</span>
         )}
         {airport && <span className="text-zinc-600 font-extrabold select-none">·</span>}
-        <span className="text-accent font-mono font-black shrink-0 tracking-wider">
+        <span className="text-accent font-mono font-black shrink-0 tracking-wider text-[13px]">
           {utcTime}
         </span>
       </div>

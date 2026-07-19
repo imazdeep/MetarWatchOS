@@ -90,15 +90,15 @@ export function SimbriefMetarCard({ icao, title, metarSource = 'live', planMetar
   return (
     <div className="flex flex-col gap-4 w-full items-center">
       <div className="flex flex-col items-center gap-0.5">
-        <h4 className="text-[10px] font-black tracking-widest text-zinc-500 uppercase">{title}</h4>
+        <h4 className="text-xs font-black tracking-widest text-zinc-500 uppercase">{title}</h4>
         <div className="flex items-center gap-2">
-          <h3 className="text-2xl font-black font-mono text-white">
+          <h3 className="text-3xl font-black font-mono text-white">
             {icao}
           </h3>
           {metar.flightCategory && <FlightCategoryBadge category={metar.flightCategory} />}
         </div>
         {airport?.name && (
-          <p className="text-[10px] text-zinc-400 font-bold text-center max-w-[200px] mt-0.5 line-clamp-1">{airport.name}</p>
+          <p className="text-xs text-zinc-400 font-bold text-center max-w-[240px] mt-0.5 line-clamp-1">{airport.name}</p>
         )}
       </div>
       <WeatherGrid metar={metar} />

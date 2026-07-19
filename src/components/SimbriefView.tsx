@@ -38,7 +38,7 @@ export function SimbriefView() {
          >
            {/* Navigation controls row at the very top of briefing */}
            <div className="flex flex-col items-center gap-1.5 w-full font-sans mb-1">
-             <div className="text-[9px] font-black text-zinc-500 tracking-widest uppercase font-sans">
+             <div className="text-xs font-black text-zinc-500 tracking-widest uppercase font-sans">
                {activeTab === 'live' && 'Simbrief: Live Weather'}
                {activeTab === 'plan' && 'Simbrief: Plan Weather'}
                {activeTab === 'alternate' && 'Simbrief: Alternate Station'}
@@ -52,7 +52,7 @@ export function SimbriefView() {
                  style={{ minWidth: '44px', minHeight: '44px' }}
                  title="Live Weather"
                >
-                 <CloudSun size={15} />
+                 <CloudSun size={18} />
                </button>
 
                {/* Plan Mode Button */}
@@ -62,7 +62,7 @@ export function SimbriefView() {
                  style={{ minWidth: '44px', minHeight: '44px' }}
                  title="Flight Plan Weather"
                >
-                 <FileText size={15} />
+                 <FileText size={18} />
                </button>
 
                {/* Alternate Airport Button */}
@@ -73,7 +73,7 @@ export function SimbriefView() {
                  style={{ minWidth: '44px', minHeight: '44px' }}
                  title="Alternate Airport"
                >
-                 <AlternateIcon size={15} />
+                 <AlternateIcon size={18} />
                </button>
 
                {/* Refresh Plan Button */}
@@ -84,7 +84,7 @@ export function SimbriefView() {
                  style={{ minWidth: '44px', minHeight: '44px' }}
                  title="Refresh Simbrief Plan"
                >
-                 {loading ? <Loader2 size={15} className="animate-spin text-accent" /> : <RefreshCw size={15} />}
+                 {loading ? <Loader2 size={18} className="animate-spin text-accent" /> : <RefreshCw size={18} />}
                </button>
              </div>
            </div>
