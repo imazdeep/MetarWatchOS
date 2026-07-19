@@ -1,0 +1,8 @@
+{
+  "name": "Live METAR",
+  "description": "Real-time airport and METAR weather dashboard featuring VATSIM network data.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

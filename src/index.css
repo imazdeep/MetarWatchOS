@@ -1,0 +1,33 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme {
+  --font-sans: "Calibri", "Helvetica", "Arial", sans-serif;
+  --font-mono: "Calibri", "Helvetica", "Arial", sans-serif;
+  
+  --color-accent: oklch(51.1% 0.096 186.391);
+  --color-airbus-blue: oklch(51.1% 0.096 186.391);
+  --color-airbus-sky: oklch(51.1% 0.096 186.391);
+  --color-airbus-safety: #ff9e1b;
+}
+
+@layer base {
+  body {
+    @apply bg-black text-zinc-100 transition-colors duration-300 select-none overflow-hidden w-full h-full font-sans;
+    font-family: "Calibri", "Helvetica", "Arial", sans-serif;
+  }
+  
+  .dark body {
+    @apply bg-black text-zinc-100;
+  }
+}
+
+/* Custom watch-optimized scrollbar hiding utility */
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
