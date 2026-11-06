@@ -1,139 +1,129 @@
 import React, { useState } from 'react';
+import { AlertCircle, Loader2, Plane, RefreshCw } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 import { useSimbrief } from '../hooks/useSimbrief';
 import { SimbriefMetarCard } from './SimbriefMetarCard';
-import { Loader2, AlertCircle, RefreshCw, CloudSun, FileText } from 'lucide-react';
+import { SimbriefIcon } from './SimbriefIcon';
 import { AlternateIcon } from './AlternateIcon';
-import { motion, AnimatePresence } from 'motion/react';
+
+type Tab = 'live' | 'plan' | 'alternate';
 
 export function SimbriefView() {
   const userid = '1149288';
   const { data, loading, error, refresh } = useSimbrief(userid);
-  const [activeTab, setActiveTab] = useState<'live' | 'plan' | 'alternate'>('live');
+  const [activeTab, setActiveTab] = useState<Tab>('live');
+  const [reloadToken, setReloadToken] = useState(0);
+
+  const reload = () => {
+    refresh();
+    setReloadToken(t => t + 1);
+  };
+
+  const tabs: { value: Tab; label: string; disabled?: boolean }[] = [
+    { value: 'live', label: 'Live' },
+    { value: 'plan', label: 'Plan' },
+    { value: 'alternate', label: 'Altn', disabled: !data?.altn },
+  ];
 
   return (
-    <div className="flex flex-col gap-3 w-full items-center text-center font-sans">
-       
-       {loading && !data && (
-         <div className="py-10 flex flex-col items-center justify-center font-sans">
-            <Loader2 size={24} className="animate-spin text-accent mb-2" />
-            <div className="text-zinc-500 font-bold text-xs uppercase tracking-wider font-sans">Fetching Simbrief...</div>
-         </div>
-       )}
+    <div className="flex w-full flex-col items-center">
+      <div className="label flex items-center gap-[0.22rem] text-ink-2">
+        <SimbriefIcon className="size-[0.8rem] text-accent" />
+        <span>Flight brief</span>
+      </div>
 
-       {error && !data && (
-         <div className="bg-red-950/40 border border-red-900 rounded-xl p-4 flex flex-col items-center gap-2 text-red-400 text-center max-w-[240px] font-sans">
-            <AlertCircle size={20} className="shrink-0" />
-            <div>
-              <h3 className="font-bold text-xs uppercase font-sans">Retrieve Error</h3>
-              <p className="text-xs text-zinc-400 mt-1 font-sans">{error}</p>
-            </div>
-         </div>
-       )}
+      {loading && !data && (
+        <div className="mt-[2.4rem] flex flex-col items-center gap-[0.5rem]">
+          <Loader2 className="size-[1.6rem] animate-spin text-accent" aria-hidden="true" />
+          <p className="label text-ink-2">Fetching SimBrief…</p>
+        </div>
+      )}
 
-       {data && (
-         <motion.div 
-           initial={{ opacity: 0 }}
-           animate={{ opacity: 1 }}
-           className="flex flex-col gap-3 w-full items-center font-sans"
-         >
-           {/* Navigation controls row at the very top of briefing */}
-           <div className="flex flex-col items-center gap-1.5 w-full font-sans mb-1">
-             <div className="text-xs font-black text-zinc-500 tracking-widest uppercase font-sans">
-               {activeTab === 'live' && 'Simbrief: Live Weather'}
-               {activeTab === 'plan' && 'Simbrief: Plan Weather'}
-               {activeTab === 'alternate' && 'Simbrief: Alternate Station'}
-             </div>
+      {error && !data && (
+        <div className="glass mt-[1.4rem] flex w-[10.8rem] flex-col items-center gap-[0.35rem] rounded-[1.1rem] px-[0.7rem] py-[0.75rem]">
+          <AlertCircle className="size-[1.3rem] text-danger" aria-hidden="true" />
+          <h3 className="label text-danger">Couldn't load plan</h3>
+          <p className="text-body font-semibold text-ink-1">{error}</p>
+          <button type="button" onClick={reload} className="pill-btn btn-primary mt-[0.2rem] h-[2rem] px-[0.9rem] text-label">
+            <RefreshCw className="size-[0.8rem]" strokeWidth={2.6} aria-hidden="true" />
+            Retry
+          </button>
+        </div>
+      )}
 
-             <div className="flex items-center justify-center gap-2.5 w-full font-sans">
-               {/* Live Mode Button */}
-               <button 
-                 onClick={() => setActiveTab('live')}
-                 className={`w-11 h-11 rounded-full border flex items-center justify-center cursor-pointer transition-all font-sans ${activeTab === 'live' ? 'bg-accent border-accent text-black font-extrabold shadow-md' : 'bg-zinc-950 border-zinc-900 text-accent active:bg-zinc-900'}`}
-                 style={{ minWidth: '44px', minHeight: '44px' }}
-                 title="Live Weather"
-               >
-                 <CloudSun size={18} />
-               </button>
+      {data && (
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex w-full flex-col items-center">
+          {/* Route summary */}
+          <div className="mt-[0.3rem] flex items-center gap-[0.4rem] text-[calc(1.25rem*var(--fz))] font-extrabold leading-none tracking-[0.04em] text-ink-1">
+            <span>{data.origin}</span>
+            <Plane className="size-[0.95rem] text-accent" strokeWidth={2.4} aria-label="to" />
+            <span>{data.destination}</span>
+          </div>
 
-               {/* Plan Mode Button */}
-               <button 
-                 onClick={() => setActiveTab('plan')}
-                 className={`w-11 h-11 rounded-full border flex items-center justify-center cursor-pointer transition-all font-sans ${activeTab === 'plan' ? 'bg-accent border-accent text-black font-extrabold shadow-md' : 'bg-zinc-950 border-zinc-900 text-accent active:bg-zinc-900'}`}
-                 style={{ minWidth: '44px', minHeight: '44px' }}
-                 title="Flight Plan Weather"
-               >
-                 <FileText size={18} />
-               </button>
+          <div className="mt-[0.35rem] flex items-center gap-[0.3rem]">
+            {data.altn && (
+              <span className="chip glass">
+                <AlternateIcon className="size-[0.62rem] text-accent" />
+                <span className="text-ink-1">ALTN {data.altn}</span>
+              </span>
+            )}
+            <button type="button" onClick={reload} disabled={loading} className="chip chip-btn glass" aria-label="Reload flight plan">
+              <RefreshCw className={`size-[0.7rem] text-accent ${loading ? 'animate-spin' : ''}`} strokeWidth={2.6} aria-hidden="true" />
+              <span>{loading ? 'LOADING' : 'RELOAD'}</span>
+            </button>
+          </div>
 
-               {/* Alternate Airport Button */}
-               <button 
-                 onClick={() => data.altn ? setActiveTab('alternate') : null}
-                 disabled={!data.altn}
-                 className={`w-11 h-11 rounded-full border flex items-center justify-center cursor-pointer transition-all font-sans ${!data.altn ? 'opacity-25 border-zinc-900 text-zinc-700 cursor-not-allowed' : activeTab === 'alternate' ? 'bg-accent border-accent text-black font-extrabold shadow-md' : 'bg-zinc-950 border-zinc-900 text-accent active:bg-zinc-900'}`}
-                 style={{ minWidth: '44px', minHeight: '44px' }}
-                 title="Alternate Airport"
-               >
-                 <AlternateIcon size={18} />
-               </button>
+          {/* Labelled tabs */}
+          <div className="seg glass mt-[0.5rem] w-[10.8rem]" role="tablist" aria-label="Brief weather source">
+            {tabs.map(t => (
+              <button
+                key={t.value}
+                type="button"
+                role="tab"
+                aria-selected={activeTab === t.value}
+                disabled={t.disabled}
+                onClick={() => setActiveTab(t.value)}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
+          <p className="mt-[0.3rem] text-micro font-bold uppercase tracking-[0.1em] text-ink-3">
+            {activeTab === 'live' && 'Current METAR'}
+            {activeTab === 'plan' && 'Weather at OFP release'}
+            {activeTab === 'alternate' && 'Alternate · current METAR'}
+          </p>
 
-               {/* Refresh Plan Button */}
-               <button 
-                 onClick={refresh}
-                 disabled={loading}
-                 className="w-11 h-11 rounded-full bg-zinc-950 border border-zinc-900 text-accent flex items-center justify-center cursor-pointer active:bg-zinc-900 transition disabled:opacity-40 font-sans"
-                 style={{ minWidth: '44px', minHeight: '44px' }}
-                 title="Refresh Simbrief Plan"
-               >
-                 {loading ? <Loader2 size={18} className="animate-spin text-accent" /> : <RefreshCw size={18} />}
-               </button>
-             </div>
-           </div>
-
-           {/* Dynamic view content depending on the active tab */}
-           <div className="w-full flex flex-col gap-3 items-center font-sans">
-             <AnimatePresence mode="wait">
-               {activeTab === 'live' && (
-                 <motion.div
-                   key="live"
-                   initial={{ opacity: 0, y: 4 }}
-                   animate={{ opacity: 1, y: 0 }}
-                   exit={{ opacity: 0, y: -4 }}
-                   className="w-full flex flex-col gap-4 items-center"
-                 >
-                   <SimbriefMetarCard title="Departure" icao={data.origin} metarSource="live" />
-                   <SimbriefMetarCard title="Arrival" icao={data.destination} metarSource="live" />
-                 </motion.div>
-               )}
-
-               {activeTab === 'plan' && (
-                 <motion.div
-                   key="plan"
-                   initial={{ opacity: 0, y: 4 }}
-                   animate={{ opacity: 1, y: 0 }}
-                   exit={{ opacity: 0, y: -4 }}
-                   className="w-full flex flex-col gap-4 items-center"
-                 >
-                   <SimbriefMetarCard title="Departure" icao={data.origin} metarSource="plan" planMetarRaw={data.weather?.orig} />
-                   <SimbriefMetarCard title="Arrival" icao={data.destination} metarSource="plan" planMetarRaw={data.weather?.dest} />
-                 </motion.div>
-               )}
-
-               {activeTab === 'alternate' && data.altn && (
-                 <motion.div
-                   key="alternate"
-                   initial={{ opacity: 0, y: 4 }}
-                   animate={{ opacity: 1, y: 0 }}
-                   exit={{ opacity: 0, y: -4 }}
-                   className="w-full flex flex-col items-center"
-                 >
-                   <SimbriefMetarCard title="Alternate" icao={data.altn} metarSource="live" planMetarRaw={data.weather?.altn} />
-                 </motion.div>
-               )}
-             </AnimatePresence>
-           </div>
-         </motion.div>
-       )}
+          <div className="mt-[0.7rem] flex w-full flex-col items-center">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={activeTab}
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -6 }}
+                transition={{ duration: 0.16 }}
+                className="flex w-full flex-col items-center gap-[1rem]"
+              >
+                {activeTab === 'live' && (
+                  <>
+                    <SimbriefMetarCard title="Departure" icao={data.origin} metarSource="live" reloadToken={reloadToken} />
+                    <SimbriefMetarCard title="Arrival" icao={data.destination} metarSource="live" reloadToken={reloadToken} />
+                  </>
+                )}
+                {activeTab === 'plan' && (
+                  <>
+                    <SimbriefMetarCard title="Departure" icao={data.origin} metarSource="plan" planMetarRaw={data.weather?.orig} />
+                    <SimbriefMetarCard title="Arrival" icao={data.destination} metarSource="plan" planMetarRaw={data.weather?.dest} />
+                  </>
+                )}
+                {activeTab === 'alternate' && data.altn && (
+                  <SimbriefMetarCard title="Alternate" icao={data.altn} metarSource="live" planMetarRaw={data.weather?.altn} reloadToken={reloadToken} />
+                )}
+              </motion.div>
+            </AnimatePresence>
+          </div>
+        </motion.div>
+      )}
     </div>
   );
 }
-

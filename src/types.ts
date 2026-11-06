@@ -28,5 +28,7 @@ export interface AppState {
   metar: MetarData | null;
   isLoading: boolean;
   error: string | null;
+  /** Station code of the request that produced `error`. */
+  failedIcao?: string;
   lastUpdated: Date | null;
 }

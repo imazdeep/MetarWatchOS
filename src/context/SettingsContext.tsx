@@ -1,45 +1,63 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 
 export type UnitsStyle = 'metric' | 'imperial';
+export type ThemeStyle = 'glass' | 'oled';
+export type FitStyle = 'auto' | 'watch' | 'frame';
 
 interface SettingsContextType {
   units: UnitsStyle;
   setUnits: (u: UnitsStyle) => void;
-  isDark: boolean;
-  toggleTheme: () => void;
+  theme: ThemeStyle;
+  setTheme: (t: ThemeStyle) => void;
+  fit: FitStyle;
+  setFit: (f: FitStyle) => void;
+}
+
+declare global {
+  interface Window {
+    /** Recomputes the watch-face size (defined in index.html). */
+    __wxFit?: () => void;
+  }
 }
 
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
 
+function read<T extends string>(key: string, allowed: readonly T[], fallback: T): T {
+  try {
+    const v = localStorage.getItem(key) as T | null;
+    return v && allowed.includes(v) ? v : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function write(key: string, value: string) {
+  try {
+    localStorage.setItem(key, value);
+  } catch {
+    /* storage unavailable (private mode) — setting lasts for this visit */
+  }
+}
+
 export function SettingsProvider({ children }: { children: React.ReactNode }) {
-  const [units, setUnits] = useState<UnitsStyle>(() => {
-    return (localStorage.getItem('units') as UnitsStyle) || 'metric';
-  });
+  const [units, setUnits] = useState<UnitsStyle>(() => read('units', ['metric', 'imperial'] as const, 'metric'));
+  const [theme, setTheme] = useState<ThemeStyle>(() => read('wx-theme', ['glass', 'oled'] as const, 'glass'));
+  const [fit, setFit] = useState<FitStyle>(() => read('wx-fit', ['auto', 'watch', 'frame'] as const, 'auto'));
 
-  const [isDark, setIsDark] = useState(() => {
-    if (localStorage.getItem('theme') === 'dark') return true;
-    if (localStorage.getItem('theme') === 'light') return false;
-    return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-  });
+  useEffect(() => write('units', units), [units]);
 
   useEffect(() => {
-    localStorage.setItem('units', units);
-  }, [units]);
+    write('wx-theme', theme);
+    document.documentElement.setAttribute('data-theme', theme);
+  }, [theme]);
 
   useEffect(() => {
-    if (isDark) {
-      document.documentElement.classList.add('dark');
-      localStorage.setItem('theme', 'dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-      localStorage.setItem('theme', 'light');
-    }
-  }, [isDark]);
-
-  const toggleTheme = () => setIsDark(!isDark);
+    write('wx-fit', fit);
+    window.__wxFit?.();
+  }, [fit]);
 
   return (
-    <SettingsContext.Provider value={{ units, setUnits, isDark, toggleTheme }}>
+    <SettingsContext.Provider value={{ units, setUnits, theme, setTheme, fit, setFit }}>
       {children}
     </SettingsContext.Provider>
   );
