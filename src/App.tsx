@@ -1,98 +1,110 @@
-import React, { useState } from 'react';
-import { useMetar } from './hooks/useMetar';
-import { SearchHeader } from './components/SearchHeader';
-import { AirportInfoWidget } from './components/AirportInfoWidget';
-import { WeatherGrid } from './components/WeatherGrid';
-import { SimbriefView } from './components/SimbriefView';
-import { AlertTriangle } from 'lucide-react';
+import React, { useEffect } from 'react';
+import { AlertTriangle, RefreshCw, Search } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { useMetar } from './hooks/useMetar';
+import { useRoute } from './hooks/useRoute';
+import { useRecents } from './hooks/useRecents';
+import { WatchFace } from './components/watch/WatchFace';
+import { Screen } from './components/watch/Screen';
+import { CurvedClock } from './components/watch/CurvedClock';
+import { Dock } from './components/watch/Dock';
+import { StationHeader } from './components/StationHeader';
+import { WeatherGrid, WeatherGridSkeleton } from './components/WeatherGrid';
+import { CloudLayers, RawMetar } from './components/RawMetar';
+import { SimbriefView } from './components/SimbriefView';
+import { SearchSheet } from './components/SearchSheet';
+import { SettingsSheet } from './components/SettingsSheet';
+
+const fade = {
+  initial: { opacity: 0 },
+  animate: { opacity: 1 },
+  exit: { opacity: 0 },
+  transition: { duration: 0.16 },
+};
 
 export default function App() {
   const { state, search, refresh } = useMetar();
-  const [mode, setMode] = useState<'search' | 'simbrief'>('search');
+  const { route, openOverlay, closeOverlay, toggleBrief, goHome } = useRoute();
+  const { recents, add: addRecent } = useRecents();
+
+  useEffect(() => {
+    if (state.metar && !state.error) addRecent(state.icao);
+  }, [state.icao, state.metar, state.error, addRecent]);
+
+  const runSearch = (icao: string) => {
+    goHome();
+    search(icao);
+  };
 
   return (
-    <div className="min-h-screen w-full bg-black flex items-center justify-center p-0 overflow-hidden font-sans select-none text-white">
-      {/* 
-        High-fidelity Wear OS Smartwatch Container
-        - On desktop / large screens, simulates the physical circular watch bezel (480x480px).
-        - On actual watches or in small viewports, expands seamlessly to fill 100% of the screen.
-      */}
-      <div className="relative w-full max-w-[480px] h-screen sm:h-[480px] sm:max-h-[480px] sm:rounded-full sm:border-[10px] sm:border-zinc-800 sm:shadow-2xl overflow-hidden bg-black flex flex-col">
-        
-        {/* Scrollable watch container with radial padding (prevents content clipping on watch curve) */}
-        <div className="flex-1 w-full overflow-y-auto overflow-x-hidden scrollbar-none flex flex-col items-center py-8 px-7 text-center select-none scroll-smooth">
-          
-          {/* Vertically centered inner container for perfect alignment */}
-          <div className="my-auto w-full flex flex-col items-center gap-3">
-            {/* Main Display Area - First screen content */}
-            <div className="w-full flex flex-col items-center">
-              <AnimatePresence mode="wait">
-                {mode === 'simbrief' ? (
-                  <motion.div
-                    key="simbrief"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    className="w-full flex flex-col items-center"
-                  >
-                    <SimbriefView />
-                  </motion.div>
-                ) : state.error ? (
-                  <motion.div 
-                    key="error"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    className="bg-red-950/40 border border-red-900 rounded-xl p-4 flex flex-col items-center gap-2 text-red-400 text-center max-w-[230px] mt-2 font-sans"
-                  >
-                    <AlertTriangle className="shrink-0 text-red-400" size={18} />
-                    <div>
-                      <h3 className="font-bold text-xs uppercase font-sans">Retrieval Error</h3>
-                      <p className="text-xs text-zinc-400 mt-1 font-sans">{state.error}</p>
+    <WatchFace>
+      <AnimatePresence mode="wait" initial={false}>
+        {route.view === 'brief' ? (
+          <motion.div key="brief" className="absolute inset-0" {...fade}>
+            <Screen label="Flight brief">
+              <SimbriefView />
+            </Screen>
+          </motion.div>
+        ) : (
+          <motion.div key="weather" className="absolute inset-0" {...fade}>
+            <Screen label="Airport weather">
+              {state.error ? (
+                <div className="my-auto flex w-full flex-col items-center gap-[0.5rem] pb-[0.4rem]">
+                  <div className="glass flex w-[9.6rem] flex-col items-center gap-[0.32rem] rounded-[1.1rem] px-[0.6rem] py-[0.7rem]">
+                    <AlertTriangle className="size-[1.25rem] text-danger" aria-hidden="true" />
+                    <h2 className="label text-danger">No data{state.failedIcao ? ` · ${state.failedIcao}` : ''}</h2>
+                    <p className="text-body font-semibold text-ink-1">{state.error}</p>
+                  </div>
+                  <div className="flex gap-[0.35rem]">
+                    <button
+                      type="button"
+                      onClick={() => search(state.failedIcao || state.icao)}
+                      disabled={state.isLoading}
+                      className="pill-btn glass h-[2rem] px-[0.7rem] text-label text-ink-1"
+                    >
+                      <RefreshCw className={`size-[0.78rem] text-accent ${state.isLoading ? 'animate-spin' : ''}`} strokeWidth={2.6} aria-hidden="true" />
+                      Retry
+                    </button>
+                    <button type="button" onClick={() => openOverlay('search')} className="pill-btn btn-primary h-[2rem] px-[0.7rem] text-label">
+                      <Search className="size-[0.78rem]" strokeWidth={2.6} aria-hidden="true" />
+                      Search
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <motion.div key={state.icao} className="flex w-full flex-col items-center" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+                  <StationHeader icao={state.icao} airport={state.airport} metar={state.metar} isLoading={state.isLoading} onRefresh={refresh} />
+                  <div className="mt-[0.32rem]">{state.metar ? <WeatherGrid metar={state.metar} /> : <WeatherGridSkeleton />}</div>
+                  {state.metar && (
+                    <div className="mt-[0.45rem] flex flex-col items-center gap-[0.45rem]">
+                      <CloudLayers metar={state.metar} />
+                      <RawMetar metar={state.metar} />
+                      <p className="mt-[0.2rem] text-micro font-bold uppercase tracking-[0.12em] text-ink-3">Auto-refresh every 3 min</p>
                     </div>
-                  </motion.div>
-                ) : (
-                  <motion.div 
-                    key={state.icao}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    className="flex flex-col gap-3 w-full items-center font-sans"
-                  >
-                    {/* Airport & Station Information - Extremely compact dual-line header */}
-                    <div className="w-full">
-                      <AirportInfoWidget 
-                        airport={state.airport} 
-                        icao={state.icao} 
-                        metar={state.metar} 
-                        lastUpdated={state.lastUpdated}
-                      />
-                    </div>
-                    
-                    {/* Weather metrics (Altimeter, Temp, Wind, Vis in a spacious horizontal 2x2 grid) */}
-                    <div className="w-full">
-                      <WeatherGrid metar={state.metar} />
-                    </div>
+                  )}
+                </motion.div>
+              )}
+            </Screen>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
+      <Dock view={route.view} onSearch={() => openOverlay('search')} onToggleBrief={toggleBrief} onSettings={() => openOverlay('settings')} />
 
-            {/* Integrated search and round action buttons directly under the metrics */}
-            <SearchHeader 
-              icao={state.icao} 
-              isLoading={state.isLoading} 
-              onSearch={search} 
-              onRefresh={refresh}
-              mode={mode}
-              onModeChange={setMode}
-            />
-          </div>
+      <AnimatePresence>
+        {route.overlay === 'search' && (
+          <React.Fragment key="search">
+            <SearchSheet current={state.icao} recents={recents} onSearch={runSearch} onClose={closeOverlay} />
+          </React.Fragment>
+        )}
+        {route.overlay === 'settings' && (
+          <React.Fragment key="settings">
+            <SettingsSheet onClose={closeOverlay} />
+          </React.Fragment>
+        )}
+      </AnimatePresence>
 
-        </div>
-      </div>
-    </div>
+      <CurvedClock />
+    </WatchFace>
   );
 }

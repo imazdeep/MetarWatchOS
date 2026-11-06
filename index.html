@@ -1,27 +1,89 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-fit="watch" data-theme="glass">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <meta name="theme-color" content="#000000" />
-    <title>Live METAR Dashboard</title>
-    <style>
-      /* Prevent bounce scroll on mobile and watch screens */
-      html, body {
-        margin: 0;
-        padding: 0;
-        width: 100%;
-        height: 100%;
-        overflow: hidden;
-        background-color: #000000;
-        -webkit-user-select: none;
-        user-select: none;
-      }
-    </style>
+    <meta name="theme-color" content="#040a18" />
+    <meta name="color-scheme" content="dark" />
+    <title>Live METAR</title>
+    <script>
+      /*
+       * Watch-face fit engine (runs before first paint).
+       *
+       * Wear OS browsers report wildly different CSS viewports for the same
+       * Galaxy Watch screen (240px at DPR 2, 480px at DPR 1, 980px in
+       * "desktop mode"...). Fixed px/rem sizes therefore look huge on one
+       * watch and tiny on another. Instead, the whole UI is laid out on a
+       * round "face" and the root font-size is face / 15, so 1rem is always
+       * 1/15th of the screen diameter no matter how the browser scales.
+       *
+       *  - data-fit="watch": face fills the screen (real watch).
+       *  - data-fit="frame": face is shown inside a bezel (phone / desktop
+       *    preview) - a pixel-proportional replica of what the watch shows.
+       *
+       * Override with ?fit=watch | ?fit=frame | ?fit=auto, or in Settings.
+       */
+      (function () {
+        var root = document.documentElement;
+
+        function read(key) {
+          try { return localStorage.getItem(key); } catch (e) { return null; }
+        }
+
+        var q = /[?&]fit=(watch|frame|auto)\b/.exec(location.search);
+        if (q) { try { localStorage.setItem('wx-fit', q[1]); } catch (e) {} }
+
+        var theme = read('wx-theme');
+        if (theme === 'oled' || theme === 'glass') root.setAttribute('data-theme', theme);
+
+        function isWatchLike() {
+          var w = window.innerWidth, h = window.innerHeight;
+          var sw = screen.width || w, sh = screen.height || h;
+          var dpr = window.devicePixelRatio || 1;
+          var squareScreen = Math.abs(sw - sh) / Math.max(sw, sh) < 0.12;
+          var tinyScreen = Math.max(sw, sh) * dpr <= 640 || Math.max(sw, sh) <= 520;
+          var squareView = Math.abs(w - h) / Math.max(w, h) < 0.2 && Math.max(w, h) <= 560;
+          var ua = /wear ?os|\bwatch\b|SM-R\d{3}|SM-L\d{3}/i.test(navigator.userAgent);
+          return (squareScreen && tinyScreen) || squareView || ua;
+        }
+
+        function fit() {
+          var pref = read('wx-fit') || 'auto';
+          var w = window.innerWidth, h = window.innerHeight;
+          var watch = pref === 'watch' || (pref !== 'frame' && isWatchLike());
+          var face = watch
+            ? Math.min(w, h)
+            : Math.max(200, Math.min(w * 0.84, (h - 72) * 0.9, 460));
+          root.setAttribute('data-fit', watch ? 'watch' : 'frame');
+          root.style.setProperty('--face', Math.floor(face) + 'px');
+        }
+
+        /*
+         * Some watch WebViews inflate text (system font-size / font boosting).
+         * text-size-adjust handles most of them; this probe measures what is
+         * actually rendered and compensates the remainder via --fz.
+         */
+        function probeTextZoom() {
+          var p = document.createElement('div');
+          p.setAttribute('aria-hidden', 'true');
+          p.style.cssText = 'position:absolute;left:-999px;top:0;visibility:hidden;font-size:100px;line-height:1;white-space:nowrap';
+          p.textContent = 'M';
+          document.body.appendChild(p);
+          var r = p.offsetHeight / 100;
+          document.body.removeChild(p);
+          if (r > 0 && Math.abs(r - 1) > 0.03) root.style.setProperty('--fz', String(1 / r));
+        }
+
+        fit();
+        window.__wxFit = fit;
+        window.addEventListener('resize', fit);
+        window.addEventListener('orientationchange', fit);
+        document.addEventListener('DOMContentLoaded', probeTextZoom);
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
-

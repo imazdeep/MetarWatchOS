@@ -1,102 +1,55 @@
 import React from 'react';
-import { Wind, Eye, Thermometer, Gauge } from 'lucide-react';
+import { Eye, Gauge, Thermometer, Wind } from 'lucide-react';
 import { MetarData } from '../types';
 import { useSettings } from '../context/SettingsContext';
+import { formatAltimeter, formatTemp, formatVisibility, formatWind, Readout, valueSize } from '../utils/format';
 
+interface Item extends Readout {
+  key: string;
+  label: string;
+  Icon: typeof Gauge;
+}
+
+/** 2×2 glass readout tiles, sized to fit the widest chord of the round face. */
 export function WeatherGrid({ metar }: { metar: MetarData | null }) {
   const { units } = useSettings();
   if (!metar) return null;
 
-  let tempVal = metar.temperature ? Number(metar.temperature) : null;
-  let tempDisplay = 'N/A';
-  let tempUnit = '°C';
-  
-  if (tempVal !== null) {
-     if (units === 'imperial') {
-        tempDisplay = Math.round((tempVal * 9/5) + 32).toString();
-        tempUnit = '°F';
-     } else {
-        tempDisplay = tempVal.toString();
-        tempUnit = '°C';
-     }
-  }
-
-  let altVal = metar.altimeter;
-  let altDisplay = 'N/A';
-  let altUnit = 'hPa';
-  
-  if (altVal) {
-     if (altVal.startsWith('Q')) {
-          const hpa = parseInt(altVal.substring(1), 10);
-          if (units === 'imperial') {
-             altDisplay = (hpa * 0.02953).toFixed(2);
-             altUnit = 'inHg';
-          } else {
-             altDisplay = hpa.toString();
-             altUnit = 'hPa';
-          }
-     } else if (altVal.startsWith('A')) {
-          const inhg = parseInt(altVal.substring(1), 10) / 100;
-          if (units === 'imperial') {
-             altDisplay = inhg.toFixed(2);
-             altUnit = 'inHg';
-          } else {
-             altDisplay = Math.round(inhg * 33.8639).toString();
-             altUnit = 'hPa';
-          }
-     }
-  }
-
-  const items = [
-    {
-      title: "ALT",
-      icon: <Gauge size={13} className="text-accent" />,
-      value: altDisplay,
-      unit: altUnit,
-    },
-    {
-      title: "TEMP",
-      icon: <Thermometer size={13} className="text-accent" />,
-      value: tempDisplay,
-      unit: tempUnit,
-    },
-    {
-      title: "WIND",
-      icon: <Wind size={13} className="text-accent" />,
-      value: metar.wind ? `${metar.wind.direction}/${metar.wind.speed}` : 'N/A',
-      unit: metar.wind?.unit || 'KT',
-    },
-    {
-      title: "VIS",
-      icon: <Eye size={13} className="text-accent" />,
-      value: metar.visibility ? metar.visibility : 'N/A',
-      unit: '',
-    }
+  const alt = formatAltimeter(metar.altimeter, units);
+  const items: Item[] = [
+    { key: 'alt', Icon: Gauge, ...alt },
+    { key: 'temp', Icon: Thermometer, label: 'TEMP/DEW', ...formatTemp(metar, units) },
+    { key: 'wind', Icon: Wind, label: 'WIND', ...formatWind(metar) },
+    { key: 'vis', Icon: Eye, label: 'VIS', ...formatVisibility(metar.visibility) },
   ];
 
   return (
-    <div className="grid grid-cols-2 gap-3.5 w-full max-w-[340px] px-3 mx-auto font-sans">
-      {items.map((item, i) => (
-        <div 
-          key={i} 
-          className="bg-zinc-950/40 border border-zinc-900/85 rounded-2xl p-3 flex flex-col items-center justify-center text-center font-sans hover:border-accent/40 transition-colors"
-          style={{ minHeight: '66px' }}
-        >
-          <div className="flex items-center gap-1 text-zinc-500 font-bold text-xs tracking-widest uppercase mb-1 font-sans">
-            {item.icon}
-            <span>{item.title}</span>
+    <div className="grid w-[11rem] grid-cols-2 gap-[0.3rem]">
+      {items.map(({ key, Icon, label, value, unit, note }) => (
+        <div key={key} className="tile glass wear-item h-[2.6rem]">
+          <div className="label flex items-center gap-[0.2rem]">
+            <Icon className="size-[0.74rem] shrink-0 text-accent" strokeWidth={2.5} aria-hidden="true" />
+            <span>{label}</span>
+            {note && <span className="text-warn">{note}</span>}
           </div>
-          <div className="flex items-baseline justify-center gap-1 min-w-0 w-full font-sans">
-            <span className="text-2xl font-black text-white tracking-tight truncate max-w-full font-sans">
-              {item.value}
+          <div className="flex max-w-full items-baseline justify-center gap-[0.14rem]">
+            <span className="value" style={{ fontSize: valueSize(value) }}>
+              {value}
             </span>
-            {item.unit && (
-              <span className="text-xs font-bold text-accent shrink-0 select-none font-sans">
-                {item.unit}
-              </span>
-            )}
+            {unit && <span className="text-micro font-bold text-accent">{unit}</span>}
           </div>
         </div>
+      ))}
+    </div>
+  );
+}
+
+/** Loading placeholder matching the grid footprint. */
+export function WeatherGridSkeleton() {
+  return (
+    <div className="grid w-[11rem] grid-cols-2 gap-[0.3rem]" aria-hidden="true">
+      {[0, 1, 2, 3].map(i => (
+        <div key={i} className="tile skeleton h-[2.6rem] rounded-[0.95rem] border border-[var(--glass-line)]" />
       ))}
     </div>
   );

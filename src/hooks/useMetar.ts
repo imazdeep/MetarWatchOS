@@ -66,6 +66,7 @@ export function useMetar() {
         ...prev,
         isLoading: false,
         error: err.message || 'An error occurred fetching data',
+        failedIcao: code,
       }));
     }
   }, []);

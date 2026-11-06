@@ -35,8 +35,13 @@ export function parseMetar(rawMetar: string): MetarData {
       continue;
     }
 
-    // Visibility: 9999 or 10SM
-    if (!data.visibility && (/^\d{4}$/.test(p) || /^\d{1,2}(SM|KM)$/.test(p))) {
+    // Visibility: 9999, 10SM, P6SM, 1/2SM, M1/4SM, "1 1/2SM", 5KM
+    if (!data.visibility && /^\d$/.test(p) && /^\d\/\d{1,2}SM$/.test(parts[i + 1] || '')) {
+      data.visibility = `${p} ${parts[i + 1]}`;
+      i++;
+      continue;
+    }
+    if (!data.visibility && (/^\d{4}$/.test(p) || /^P?\d{1,2}(SM|KM)$/.test(p) || /^M?\d\/\d{1,2}SM$/.test(p))) {
       data.visibility = p;
       continue;
     }
@@ -69,7 +74,7 @@ export function parseMetar(rawMetar: string): MetarData {
     if (/^(NCD|CAVOK|SKC|CLR)$/.test(p)) {
       clouds.push({ type: p });
       if (p === 'CAVOK' && !data.visibility) {
-        data.visibility = '>10km / CAVOK';
+        data.visibility = 'CAVOK';
       }
       continue;
     }
@@ -107,8 +112,10 @@ function determineFlightCategory(data: MetarData): 'VFR' | 'MVFR' | 'IFR' | 'LIF
   let visMiles = Infinity;
   if (data.visibility) {
     if (data.visibility === '9999' || data.visibility === 'CAVOK') visMiles = 10;
-    else if (data.visibility.endsWith('SM')) visMiles = parseInt(data.visibility.replace('SM', ''), 10);
+    else if (data.visibility.endsWith('SM')) visMiles = statuteMiles(data.visibility);
+    else if (data.visibility.endsWith('KM')) visMiles = parseInt(data.visibility, 10) / 1.609;
     else visMiles = parseInt(data.visibility, 10) / 1600; // rough meters to miles
+    if (!Number.isFinite(visMiles)) visMiles = Infinity;
   }
 
   if (lowestCeiling < 500 || visMiles < 1) return 'LIFR';
@@ -116,4 +123,17 @@ function determineFlightCategory(data: MetarData): 'VFR' | 'MVFR' | 'IFR' | 'LIF
   if (lowestCeiling <= 3000 || visMiles <= 5) return 'MVFR';
   
   return 'VFR';
+}
+
+/** "10SM" → 10, "P6SM" → 7, "1/2SM" → 0.5, "M1/4SM" → 0.2, "1 1/2SM" → 1.5 */
+function statuteMiles(vis: string): number {
+  const s = vis.replace('SM', '').trim();
+  if (s.startsWith('P')) return parseFloat(s.slice(1)) + 1;
+  if (s.startsWith('M')) return parseFrac(s.slice(1)) * 0.8;
+  return s.split(' ').reduce((sum, part) => sum + parseFrac(part), 0);
+}
+
+function parseFrac(s: string): number {
+  const [n, d] = s.split('/');
+  return d ? parseInt(n, 10) / parseInt(d, 10) : parseFloat(n);
 }
