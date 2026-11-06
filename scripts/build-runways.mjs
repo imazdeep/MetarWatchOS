@@ -59,7 +59,8 @@ const runways = parseCsv(await load('runways', dir));
 
 const byRef = new Map();
 for (const r of runways) {
-  if (r.closed === '1' || !r.le_ident || !r.he_ident || /^H/.test(r.le_ident)) continue;
+  // Skip closed runways and helicopter strips (H1, 08H/26H ...).
+  if (r.closed === '1' || !r.le_ident || !r.he_ident || /^H|H$/.test(r.le_ident) || /H$/.test(r.he_ident)) continue;
   if (/WATER/i.test(r.surface)) continue;
   if (!byRef.has(r.airport_ref)) byRef.set(r.airport_ref, []);
   byRef.get(r.airport_ref).push(r);
