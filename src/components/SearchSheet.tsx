@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ArrowRight, History, X } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import { Sheet } from './Sheet';
 
 interface Props {
@@ -26,18 +26,11 @@ export function SearchSheet({ current, recents, onSearch, onClose }: Props) {
   };
 
   return (
-    <Sheet
-      title="Search airport"
-      action={
-        <button type="button" className="btn-round glass glass-blur sheet-action" onClick={onClose} aria-label="Close search">
-          <X className="size-[1.15rem]" strokeWidth={2.5} />
-        </button>
-      }
-    >
-      <form onSubmit={submit} className="relative mt-[0.55rem] w-[10.8rem]">
+    <Sheet title="Search airport" onClose={onClose}>
+      <form onSubmit={submit} className="relative mt-[0.6rem] w-[10.6rem]">
         <input
           ref={inputRef}
-          className="icao-input glass"
+          className="field"
           type="text"
           inputMode="text"
           enterKeyHint="search"
@@ -54,27 +47,24 @@ export function SearchSheet({ current, recents, onSearch, onClose }: Props) {
         <button
           type="submit"
           disabled={!valid}
-          className="btn-round btn-primary absolute right-[0.25rem] top-[0.25rem] size-[2rem]"
+          className="icon-btn solid tap absolute right-[0.25rem] top-[0.25rem] size-[1.8rem] disabled:opacity-40"
           aria-label="Show weather"
         >
-          <ArrowRight className="size-[1.05rem]" strokeWidth={2.6} />
+          <ArrowRight className="size-[0.95rem]" strokeWidth={2.4} />
         </button>
       </form>
-      <p className="mt-[0.38rem] text-micro font-bold uppercase tracking-[0.1em] text-ink-3">3–4 letters · e.g. KJFK</p>
+      <p className="mt-[0.35rem] text-lbl tracking-[0.06em] text-ink-3">e.g. EGLL · KJFK · LFPG</p>
 
       {recents.length > 0 && (
         <>
-          <div className="label mt-[0.75rem] flex items-center gap-[0.22rem]">
-            <History className="size-[0.74rem] text-accent" strokeWidth={2.5} aria-hidden="true" />
-            <span>Recent</span>
-          </div>
-          <div className="mt-[0.38rem] flex w-[10.8rem] flex-wrap justify-center gap-[0.3rem]">
+          <span className="lbl mt-[0.8rem]">Recent</span>
+          <div className="mt-[0.4rem] flex w-[10.6rem] flex-wrap justify-center gap-[0.3rem]">
             {recents.map(code => (
               <button
                 key={code}
                 type="button"
                 onClick={() => onSearch(code)}
-                className={`pill-btn wear-item h-[2.1rem] w-[3.4rem] text-lead tracking-[0.06em] ${code === current ? 'btn-primary' : 'glass text-ink-1'}`}
+                className={`pill tap w-[3.3rem] px-0 text-body tracking-[0.08em] ${code === current ? 'solid' : ''}`}
                 aria-current={code === current ? 'true' : undefined}
               >
                 {code}

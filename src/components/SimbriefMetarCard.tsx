@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { AlertCircle, Loader2 } from 'lucide-react';
+import { ChevronRight } from 'lucide-react';
 import { parseMetar } from '../utils/parseMetar';
-import { MetarData, AirportInfo } from '../types';
-import { WeatherGrid } from './WeatherGrid';
-import { FlightCategoryBadge } from './FlightCategoryBadge';
+import { MetarData } from '../types';
+import { useSettings } from '../context/SettingsContext';
+import { formatAltimeter, formatTemp, formatVisibility, formatWind } from '../utils/format';
 
 interface Props {
   icao: string;
@@ -12,11 +12,13 @@ interface Props {
   planMetarRaw?: string;
   /** Changing this value re-fetches live data. */
   reloadToken?: number;
+  onOpen?: (icao: string) => void;
 }
 
-export function SimbriefMetarCard({ icao, title, metarSource = 'live', planMetarRaw, reloadToken = 0 }: Props) {
+/** One airport of the flight plan as a compact, tappable summary. */
+export function SimbriefMetarCard({ icao, title, metarSource = 'live', planMetarRaw, reloadToken = 0, onOpen }: Props) {
+  const { units } = useSettings();
   const [metar, setMetar] = useState<MetarData | null>(null);
-  const [airport, setAirport] = useState<AirportInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -27,41 +29,21 @@ export function SimbriefMetarCard({ icao, title, metarSource = 'live', planMetar
       try {
         setLoading(true);
         setError(null);
-
-        // Fetch airport info regardless of metar source
-        const atisRes = await fetch(`https://atisgenerator.com/api/v1/airports/${icao}`).catch(() => null);
-
-        if (mounted && atisRes && atisRes.ok) {
-          try {
-            const atisJson = await atisRes.json();
-            if (atisJson?.data?.airport) {
-              setAirport({
-                icao: atisJson.data.airport.icao || icao,
-                name: atisJson.data.airport.name || 'Unknown Airport',
-              });
-            }
-          } catch (e) {}
-        }
-
         if (metarSource === 'plan') {
-          if (!planMetarRaw) {
-            if (mounted) setError('No plan METAR in this OFP');
-          } else {
-            if (mounted) setMetar(parseMetar(planMetarRaw));
-          }
+          if (!planMetarRaw) throw new Error('No plan METAR in this OFP');
+          if (mounted) setMetar(parseMetar(planMetarRaw));
         } else {
           const metarRes = await fetch(`https://metar.vatsim.net/${icao}`);
           if (!metarRes.ok) throw new Error('Fetch failed');
           const metarText = await metarRes.text();
-          if (metarText.includes('Not Found') || metarText.trim().length < 10) {
-            throw new Error('No METAR data');
-          }
-          if (mounted) {
-            setMetar(parseMetar(metarText));
-          }
+          if (metarText.includes('Not Found') || metarText.trim().length < 10) throw new Error('No METAR data');
+          if (mounted) setMetar(parseMetar(metarText));
         }
       } catch (err: any) {
-        if (mounted) setError(err.message);
+        if (mounted) {
+          setMetar(null);
+          setError(err.message);
+        }
       } finally {
         if (mounted) setLoading(false);
       }
@@ -72,32 +54,44 @@ export function SimbriefMetarCard({ icao, title, metarSource = 'live', planMetar
     };
   }, [icao, metarSource, planMetarRaw, reloadToken]);
 
-  const name = airport?.name && airport.name !== 'Unknown Airport' ? airport.name : null;
+  const alt = formatAltimeter(metar?.altimeter, units);
+  const wind = metar ? formatWind(metar) : null;
+  const temp = metar ? formatTemp(metar, units) : null;
+  const vis = formatVisibility(metar?.visibility);
+
+  const cell = (label: string, value: string) => (
+    <div className="flex min-w-0 flex-col items-start">
+      <span className="lbl">{label}</span>
+      <span className="num truncate text-small text-ink">{value}</span>
+    </div>
+  );
 
   return (
-    <section className="flex w-full flex-col items-center gap-[0.4rem]" aria-label={`${title} ${icao}`}>
-      <div className="wear-item flex flex-col items-center">
-        <span className="label text-accent">{title}</span>
-        <div className="mt-[0.14rem] flex items-center gap-[0.4rem]">
-          <h3 className="text-[calc(1.5rem*var(--fz))] font-extrabold leading-none tracking-[0.03em] text-ink-1">{icao}</h3>
-          {metar?.flightCategory && !error && <FlightCategoryBadge category={metar.flightCategory} />}
-        </div>
-        {name && <p className="mt-[0.14rem] max-w-[10.5rem] truncate text-label font-bold uppercase tracking-[0.07em] text-ink-2">{name}</p>}
+    <button
+      type="button"
+      onClick={() => onOpen?.(icao)}
+      className="tap w-[10.8rem] rounded-[0.9rem] bg-[var(--surface)] px-[0.7rem] py-[0.55rem] text-left"
+      aria-label={`${title} ${icao}. Open on instrument`}
+    >
+      <div className="flex items-center gap-[0.35rem]">
+        <span className="lbl w-[2rem] shrink-0">{title}</span>
+        <span className="text-body font-medium tracking-[0.08em] text-ink">{icao}</span>
+        {metar?.flightCategory && <span className={`cat cat-${metar.flightCategory}`}>{metar.flightCategory}</span>}
+        <ChevronRight className="ml-auto size-[0.8rem] text-ink-3" aria-hidden="true" />
       </div>
 
       {loading && !metar ? (
-        <div className="flex h-[3.2rem] items-center gap-[0.35rem] text-label font-bold uppercase tracking-[0.1em] text-ink-2">
-          <Loader2 className="size-[1rem] animate-spin text-accent" aria-hidden="true" />
-          Loading
-        </div>
+        <p className="shimmer mt-[0.35rem] text-small text-ink-2">Loading…</p>
       ) : error ? (
-        <div className="glass wear-item flex w-[11rem] items-center justify-center gap-[0.35rem] rounded-[0.95rem] px-[0.6rem] py-[0.55rem] text-body font-bold text-ink-1">
-          <AlertCircle className="size-[0.95rem] shrink-0 text-danger" aria-hidden="true" />
-          <span>{error}</span>
-        </div>
+        <p className="mt-[0.35rem] text-small text-ink-2">{error}</p>
       ) : (
-        <WeatherGrid metar={metar} />
+        <div className="mt-[0.38rem] grid grid-cols-2 gap-x-[0.6rem] gap-y-[0.3rem]">
+          {cell('Wind', wind ? `${wind.value}${wind.note ?? ''}${wind.unit ? ` ${wind.unit}` : ''}` : '—')}
+          {cell(alt.label, `${alt.value}${alt.unit ? ` ${alt.unit}` : ''}`)}
+          {cell('Temp', temp ? `${temp.value}${temp.unit ?? ''}` : '—')}
+          {cell('Vis', `${vis.value}${vis.unit ? ` ${vis.unit}` : ''}`)}
+        </div>
       )}
-    </section>
+    </button>
   );
 }

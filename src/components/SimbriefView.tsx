@@ -1,17 +1,20 @@
 import React, { useState } from 'react';
-import { AlertCircle, Loader2, Plane, RefreshCw } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
+import { RefreshCw } from 'lucide-react';
 import { useSimbrief } from '../hooks/useSimbrief';
 import { SimbriefMetarCard } from './SimbriefMetarCard';
-import { SimbriefIcon } from './SimbriefIcon';
-import { AlternateIcon } from './AlternateIcon';
+import { Sheet } from './Sheet';
 
-type Tab = 'live' | 'plan' | 'alternate';
+type Source = 'live' | 'plan';
 
-export function SimbriefView() {
+interface Props {
+  onClose: () => void;
+  onOpen: (icao: string) => void;
+}
+
+export function SimbriefView({ onClose, onOpen }: Props) {
   const userid = '1149288';
   const { data, loading, error, refresh } = useSimbrief(userid);
-  const [activeTab, setActiveTab] = useState<Tab>('live');
+  const [source, setSource] = useState<Source>('live');
   const [reloadToken, setReloadToken] = useState(0);
 
   const reload = () => {
@@ -19,111 +22,54 @@ export function SimbriefView() {
     setReloadToken(t => t + 1);
   };
 
-  const tabs: { value: Tab; label: string; disabled?: boolean }[] = [
-    { value: 'live', label: 'Live' },
-    { value: 'plan', label: 'Plan' },
-    { value: 'alternate', label: 'Altn', disabled: !data?.altn },
-  ];
-
   return (
-    <div className="flex w-full flex-col items-center">
-      <div className="label flex items-center gap-[0.22rem] text-ink-2">
-        <SimbriefIcon className="size-[0.8rem] text-accent" />
-        <span>Flight brief</span>
-      </div>
-
-      {loading && !data && (
-        <div className="mt-[2.4rem] flex flex-col items-center gap-[0.5rem]">
-          <Loader2 className="size-[1.6rem] animate-spin text-accent" aria-hidden="true" />
-          <p className="label text-ink-2">Fetching SimBrief…</p>
-        </div>
-      )}
+    <Sheet title="Flight brief" onClose={onClose}>
+      {loading && !data && <p className="shimmer mt-[2.5rem] text-small text-ink-2">Loading SimBrief plan…</p>}
 
       {error && !data && (
-        <div className="glass mt-[1.4rem] flex w-[10.8rem] flex-col items-center gap-[0.35rem] rounded-[1.1rem] px-[0.7rem] py-[0.75rem]">
-          <AlertCircle className="size-[1.3rem] text-danger" aria-hidden="true" />
-          <h3 className="label text-danger">Couldn't load plan</h3>
-          <p className="text-body font-semibold text-ink-1">{error}</p>
-          <button type="button" onClick={reload} className="pill-btn btn-primary mt-[0.2rem] h-[2rem] px-[0.9rem] text-label">
-            <RefreshCw className="size-[0.8rem]" strokeWidth={2.6} aria-hidden="true" />
-            Retry
+        <div className="mt-[1.6rem] flex w-[10rem] flex-col items-center gap-[0.4rem]">
+          <p className="text-small text-ink">{error}</p>
+          <button type="button" onClick={reload} className="pill solid tap">
+            Try again
           </button>
         </div>
       )}
 
       {data && (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex w-full flex-col items-center">
-          {/* Route summary */}
-          <div className="mt-[0.3rem] flex items-center gap-[0.4rem] text-[calc(1.25rem*var(--fz))] font-extrabold leading-none tracking-[0.04em] text-ink-1">
+        <>
+          <p className="mt-[0.3rem] flex items-center gap-[0.35rem] text-val font-medium tracking-[0.06em]">
             <span>{data.origin}</span>
-            <Plane className="size-[0.95rem] text-accent" strokeWidth={2.4} aria-label="to" />
+            <span className="text-small text-ink-3" aria-label="to">
+              →
+            </span>
             <span>{data.destination}</span>
-          </div>
-
-          <div className="mt-[0.35rem] flex items-center gap-[0.3rem]">
-            {data.altn && (
-              <span className="chip glass">
-                <AlternateIcon className="size-[0.62rem] text-accent" />
-                <span className="text-ink-1">ALTN {data.altn}</span>
-              </span>
-            )}
-            <button type="button" onClick={reload} disabled={loading} className="chip chip-btn glass" aria-label="Reload flight plan">
-              <RefreshCw className={`size-[0.7rem] text-accent ${loading ? 'animate-spin' : ''}`} strokeWidth={2.6} aria-hidden="true" />
-              <span>{loading ? 'LOADING' : 'RELOAD'}</span>
-            </button>
-          </div>
-
-          {/* Labelled tabs */}
-          <div className="seg glass mt-[0.5rem] w-[10.8rem]" role="tablist" aria-label="Brief weather source">
-            {tabs.map(t => (
-              <button
-                key={t.value}
-                type="button"
-                role="tab"
-                aria-selected={activeTab === t.value}
-                disabled={t.disabled}
-                onClick={() => setActiveTab(t.value)}
-              >
-                {t.label}
-              </button>
-            ))}
-          </div>
-          <p className="mt-[0.3rem] text-micro font-bold uppercase tracking-[0.1em] text-ink-3">
-            {activeTab === 'live' && 'Current METAR'}
-            {activeTab === 'plan' && 'Weather at OFP release'}
-            {activeTab === 'alternate' && 'Alternate · current METAR'}
           </p>
 
-          <div className="mt-[0.7rem] flex w-full flex-col items-center">
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={activeTab}
-                initial={{ opacity: 0, y: 6 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -6 }}
-                transition={{ duration: 0.16 }}
-                className="flex w-full flex-col items-center gap-[1rem]"
-              >
-                {activeTab === 'live' && (
-                  <>
-                    <SimbriefMetarCard title="Departure" icao={data.origin} metarSource="live" reloadToken={reloadToken} />
-                    <SimbriefMetarCard title="Arrival" icao={data.destination} metarSource="live" reloadToken={reloadToken} />
-                  </>
-                )}
-                {activeTab === 'plan' && (
-                  <>
-                    <SimbriefMetarCard title="Departure" icao={data.origin} metarSource="plan" planMetarRaw={data.weather?.orig} />
-                    <SimbriefMetarCard title="Arrival" icao={data.destination} metarSource="plan" planMetarRaw={data.weather?.dest} />
-                  </>
-                )}
-                {activeTab === 'alternate' && data.altn && (
-                  <SimbriefMetarCard title="Alternate" icao={data.altn} metarSource="live" planMetarRaw={data.weather?.altn} reloadToken={reloadToken} />
-                )}
-              </motion.div>
-            </AnimatePresence>
+          <div className="mt-[0.45rem] flex w-[10.4rem] items-center gap-[0.3rem]">
+            <div className="seg flex-1" role="tablist" aria-label="Weather source">
+              {(['live', 'plan'] as Source[]).map(s => (
+                <button key={s} type="button" role="tab" aria-selected={source === s} onClick={() => setSource(s)}>
+                  {s === 'live' ? 'Live' : 'Plan'}
+                </button>
+              ))}
+            </div>
+            <button type="button" onClick={reload} disabled={loading} className="icon-btn tap size-[1.98rem] shrink-0" aria-label="Reload flight plan">
+              <RefreshCw className={`size-[0.85rem] ${loading ? 'animate-spin' : ''}`} strokeWidth={2.2} />
+            </button>
           </div>
-        </motion.div>
+          <p className="mt-[0.25rem] text-lbl tracking-[0.04em] text-ink-3">
+            {source === 'live' ? 'Current METAR · tap to open' : 'Weather at OFP release'}
+          </p>
+
+          <div className="mt-[0.5rem] flex flex-col items-center gap-[0.35rem]">
+            <SimbriefMetarCard title="Dep" icao={data.origin} metarSource={source} planMetarRaw={data.weather?.orig} reloadToken={reloadToken} onOpen={onOpen} />
+            <SimbriefMetarCard title="Arr" icao={data.destination} metarSource={source} planMetarRaw={data.weather?.dest} reloadToken={reloadToken} onOpen={onOpen} />
+            {data.altn && (
+              <SimbriefMetarCard title="Altn" icao={data.altn} metarSource={source} planMetarRaw={data.weather?.altn} reloadToken={reloadToken} onOpen={onOpen} />
+            )}
+          </div>
+        </>
       )}
-    </div>
+    </Sheet>
   );
 }

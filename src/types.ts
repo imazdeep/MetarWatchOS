@@ -13,7 +13,12 @@ export interface MetarData {
     speed: string;
     gusts?: string;
     unit: string;
+    /** Variable direction range, e.g. 200V280 */
+    varFrom?: number;
+    varTo?: number;
   };
+  /** Present weather groups, e.g. ["-RA", "BR"] */
+  weather?: string[];
   visibility?: string;
   clouds?: { type: string; altitude?: string }[];
   temperature?: string;

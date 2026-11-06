@@ -1,95 +1,120 @@
-import React, { useEffect } from 'react';
-import { AlertTriangle, RefreshCw, Search } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { AnimatePresence } from 'motion/react';
 import { useMetar } from './hooks/useMetar';
 import { useRoute } from './hooks/useRoute';
 import { useRecents } from './hooks/useRecents';
+import { useAirport } from './hooks/useAirport';
 import { WatchFace } from './components/watch/WatchFace';
-import { Screen } from './components/watch/Screen';
-import { CurvedClock } from './components/watch/CurvedClock';
-import { Dock } from './components/watch/Dock';
-import { StationHeader } from './components/StationHeader';
-import { WeatherGrid, WeatherGridSkeleton } from './components/WeatherGrid';
-import { CloudLayers, RawMetar } from './components/RawMetar';
+import { Instrument } from './components/Instrument';
+import { DetailsPage, MenuPage } from './components/Pages';
 import { SimbriefView } from './components/SimbriefView';
 import { SearchSheet } from './components/SearchSheet';
 import { SettingsSheet } from './components/SettingsSheet';
 
-const fade = {
-  initial: { opacity: 0 },
-  animate: { opacity: 1 },
-  exit: { opacity: 0 },
-  transition: { duration: 0.16 },
-};
+const PAGES = 3;
 
 export default function App() {
   const { state, search, refresh } = useMetar();
   const { route, openOverlay, closeOverlay, toggleBrief, goHome } = useRoute();
   const { recents, add: addRecent } = useRecents();
+  const airportData = useAirport(state.icao);
+
+  const pagerRef = useRef<HTMLDivElement>(null);
+  const [page, setPage] = useState(0);
+  const [scrolling, setScrolling] = useState(false);
 
   useEffect(() => {
     if (state.metar && !state.error) addRecent(state.icao);
   }, [state.icao, state.metar, state.error, addRecent]);
 
+  const goPage = useCallback((i: number, smooth = true) => {
+    const el = pagerRef.current;
+    const target = el?.children[i] as HTMLElement | undefined;
+    if (el && target) el.scrollTo({ top: target.offsetTop, behavior: smooth ? 'smooth' : 'auto' });
+  }, []);
+
+  // Track the current page for the indicator dots.
+  useEffect(() => {
+    const el = pagerRef.current;
+    if (!el) return;
+    let idle = 0;
+    const onScroll = () => {
+      const pages = Array.from(el.children) as HTMLElement[];
+      let best = 0;
+      pages.forEach((p, i) => {
+        if (Math.abs(p.offsetTop - el.scrollTop) < Math.abs(pages[best].offsetTop - el.scrollTop)) best = i;
+      });
+      setPage(best);
+      setScrolling(true);
+      window.clearTimeout(idle);
+      idle = window.setTimeout(() => setScrolling(false), 900);
+    };
+    el.addEventListener('scroll', onScroll, { passive: true });
+    el.focus({ preventScroll: true }); // rotating bezel scrolls the pager
+    return () => {
+      el.removeEventListener('scroll', onScroll);
+      window.clearTimeout(idle);
+    };
+  }, []);
+
+  // New station → back to the instrument.
+  useEffect(() => goPage(0, false), [state.icao, goPage]);
+
   const runSearch = (icao: string) => {
     goHome();
+    goPage(0, false);
     search(icao);
+  };
+
+  const doRefresh = () => {
+    refresh();
+    goPage(0);
   };
 
   return (
     <WatchFace>
-      <AnimatePresence mode="wait" initial={false}>
-        {route.view === 'brief' ? (
-          <motion.div key="brief" className="absolute inset-0" {...fade}>
-            <Screen label="Flight brief">
-              <SimbriefView />
-            </Screen>
-          </motion.div>
-        ) : (
-          <motion.div key="weather" className="absolute inset-0" {...fade}>
-            <Screen label="Airport weather">
-              {state.error ? (
-                <div className="my-auto flex w-full flex-col items-center gap-[0.5rem] pb-[0.4rem]">
-                  <div className="glass flex w-[9.6rem] flex-col items-center gap-[0.32rem] rounded-[1.1rem] px-[0.6rem] py-[0.7rem]">
-                    <AlertTriangle className="size-[1.25rem] text-danger" aria-hidden="true" />
-                    <h2 className="label text-danger">No data{state.failedIcao ? ` · ${state.failedIcao}` : ''}</h2>
-                    <p className="text-body font-semibold text-ink-1">{state.error}</p>
-                  </div>
-                  <div className="flex gap-[0.35rem]">
-                    <button
-                      type="button"
-                      onClick={() => search(state.failedIcao || state.icao)}
-                      disabled={state.isLoading}
-                      className="pill-btn glass h-[2rem] px-[0.7rem] text-label text-ink-1"
-                    >
-                      <RefreshCw className={`size-[0.78rem] text-accent ${state.isLoading ? 'animate-spin' : ''}`} strokeWidth={2.6} aria-hidden="true" />
-                      Retry
-                    </button>
-                    <button type="button" onClick={() => openOverlay('search')} className="pill-btn btn-primary h-[2rem] px-[0.7rem] text-label">
-                      <Search className="size-[0.78rem]" strokeWidth={2.6} aria-hidden="true" />
-                      Search
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <motion.div key={state.icao} className="flex w-full flex-col items-center" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-                  <StationHeader icao={state.icao} airport={state.airport} metar={state.metar} isLoading={state.isLoading} onRefresh={refresh} />
-                  <div className="mt-[0.32rem]">{state.metar ? <WeatherGrid metar={state.metar} /> : <WeatherGridSkeleton />}</div>
-                  {state.metar && (
-                    <div className="mt-[0.45rem] flex flex-col items-center gap-[0.45rem]">
-                      <CloudLayers metar={state.metar} />
-                      <RawMetar metar={state.metar} />
-                      <p className="mt-[0.2rem] text-micro font-bold uppercase tracking-[0.12em] text-ink-3">Auto-refresh every 3 min</p>
-                    </div>
-                  )}
-                </motion.div>
-              )}
-            </Screen>
-          </motion.div>
+      <div ref={pagerRef} className="pager" tabIndex={-1} aria-label="Airport weather">
+        <section className="page" aria-label="Instrument">
+          <Instrument
+            icao={state.error && state.failedIcao ? state.failedIcao : state.icao}
+            airport={state.airport}
+            data={state.error ? null : airportData}
+            metar={state.error ? null : state.metar}
+            isLoading={state.isLoading}
+            error={state.error}
+            failedIcao={state.failedIcao}
+            onSearch={() => openOverlay('search')}
+            onRetry={() => search(state.failedIcao || state.icao)}
+            onMore={() => goPage(1)}
+          />
+        </section>
+        <section className="page h-auto min-h-full" aria-label="Details">
+          <DetailsPage icao={state.icao} airport={state.airport} data={airportData} metar={state.error ? null : state.metar} />
+        </section>
+        <section className="page" aria-label="Menu">
+          <MenuPage
+            isLoading={state.isLoading}
+            onSearch={() => openOverlay('search')}
+            onBrief={toggleBrief}
+            onRefresh={doRefresh}
+            onSettings={() => openOverlay('settings')}
+          />
+        </section>
+      </div>
+
+      <div className="page-dots" style={{ opacity: page === 0 && !scrolling ? 0 : 1 }} aria-hidden="true">
+        {Array.from({ length: PAGES }, (_, i) => (
+          <i key={i} data-on={page === i} />
+        ))}
+      </div>
+
+      <AnimatePresence>
+        {route.view === 'brief' && (
+          <React.Fragment key="brief">
+            <SimbriefView onClose={toggleBrief} onOpen={runSearch} />
+          </React.Fragment>
         )}
       </AnimatePresence>
-
-      <Dock view={route.view} onSearch={() => openOverlay('search')} onToggleBrief={toggleBrief} onSettings={() => openOverlay('settings')} />
 
       <AnimatePresence>
         {route.overlay === 'search' && (
@@ -103,8 +128,6 @@ export default function App() {
           </React.Fragment>
         )}
       </AnimatePresence>
-
-      <CurvedClock />
     </WatchFace>
   );
 }

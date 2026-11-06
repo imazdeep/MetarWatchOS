@@ -11,7 +11,7 @@ export function WatchFace({ children }: { children: React.ReactNode }) {
         <div className="face">{children}</div>
       </div>
       <p className="frame-caption" aria-hidden="true">
-        Watch preview · opens full-screen on your watch
+        Preview · full screen on your watch
       </p>
     </div>
   );

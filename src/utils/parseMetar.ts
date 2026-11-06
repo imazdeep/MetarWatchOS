@@ -18,8 +18,26 @@ export function parseMetar(rawMetar: string): MetarData {
 
   const clouds = [];
 
+  const weather: string[] = [];
+
   for (let i = 2; i < parts.length; i++) {
     const p = parts[i];
+
+    // Trend / remarks describe the future or extra info, not current conditions.
+    if (/^(RMK|TEMPO|BECMG|NOSIG)$/.test(p)) break;
+
+    // Variable wind direction: 200V280
+    if (data.wind && /^\d{3}V\d{3}$/.test(p)) {
+      data.wind.varFrom = parseInt(p.slice(0, 3), 10);
+      data.wind.varTo = parseInt(p.slice(4), 10);
+      continue;
+    }
+
+    // Present weather: -RA, +TSRA, VCSH, BR, FZFG ...
+    if (/^(\+|-|VC)?(MI|PR|BC|DR|BL|SH|TS|FZ)?(DZ|RA|SN|SG|IC|PL|GR|GS|UP|BR|FG|FU|VA|DU|SA|HZ|PY|PO|SQ|FC|SS|DS){0,3}$/.test(p) && /[A-Z]{2}/.test(p) && !/^(VC|MI|PR|BC|DR|BL|FZ)$/.test(p)) {
+      weather.push(p);
+      continue;
+    }
     
     // Wind: 06005KT or VRB05KT or 27010G20KT
     if (!data.wind && /^(VRB|\d{3})\d{2,3}(G\d{2,3})?(KT|MPS|KMH)$/.test(p)) {
@@ -82,6 +100,9 @@ export function parseMetar(rawMetar: string): MetarData {
 
   if (clouds.length > 0) {
     data.clouds = clouds;
+  }
+  if (weather.length > 0) {
+    data.weather = weather;
   }
 
   // Basic Flight Category determination

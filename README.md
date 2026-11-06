@@ -32,6 +32,23 @@ the watch browser reports the screen as 219px, 240px, 480px or a 980px
 - Override detection with `?fit=watch`, `?fit=frame` or `?fit=auto`
   (remembered), or in **Settings → Screen fit**.
 
-Navigation: the curved dock at the bottom holds **Search**, **Flight brief ⇄
-Weather** and **Settings**. Tap the observation-time chip to refresh. The
-watch's Back key / swipe-back closes the current layer.
+Navigation (swipe up, or turn the bezel):
+
+1. **Instrument** — compass ring rotated runway-up, runways in use, wind
+   bug, QNH / wind / temperature / visibility / flight category. Tap the
+   ICAO code to change airport.
+2. **Details** — raw METAR, observation time, runway head/crosswind,
+   weather, cloud, ceiling, dew point.
+3. **Menu** — Search, Flight brief, Refresh, Settings.
+
+The watch's Back key / swipe-back closes Search, Settings and the Brief.
+
+## Runway data
+
+Runway geometry for ~14,000 airports is bundled in `public/runways/`
+(sharded by ICAO prefix, a few KB per airport) from
+[OurAirports](https://ourairports.com/data/) (public domain). Regenerate with:
+
+```
+node scripts/build-runways.mjs
+```
